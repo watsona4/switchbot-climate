@@ -1,0 +1,4 @@
+colorlog
+paho-mqtt
+pyyaml
+requests

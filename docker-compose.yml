@@ -1,0 +1,7 @@
+services:
+  switchbot-climate:
+    image: switchbot-climate:latest
+    build: /home/watsam/switchbot_climate
+    restart: unless-stopped
+    volumes:
+      - /home/watsam/switchbot_climate/config.yaml:/data/config.yaml:ro
