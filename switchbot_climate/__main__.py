@@ -10,7 +10,9 @@ from . import LOG, Client, Device, FanMode, Mode, PresetMode, Remote, Zone
 
 
 def main():
-
+    """
+    Main function to set up and run the SwitchBot Climate application.
+    """
     # Parse the command line arguments
     parser = argparse.ArgumentParser(
         prog="switchbot-climate", description="Adds a climate entity to SwitchBot-MQTT"
@@ -27,11 +29,9 @@ def main():
     args = parser.parse_args()
 
     # Set up the logger based on args
-
     LOG.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     # Read the config file
-
     with open(args.config) as config_file:
         config = yaml.load(config_file, Loader=Loader)
 
@@ -49,10 +49,8 @@ def main():
     }
 
     # Construct the Device, Zone, and Remote objects based on the config
-
     devices: List[Device] = []
     for name, entry in config["climates"].items():
-
         device = Device(name)
 
         device.target_temp = entry["temperature"] if "temperature" in entry else None
@@ -75,13 +73,11 @@ def main():
 
     zones: List[Zone] = []
     for name, entries in config["zones"].items():
-
         zone = Zone(name)
         zone.client = client
 
         for device in devices:
             if device.name in entries:
-
                 zone.devices.append(device)
                 device.zone = zone
 
@@ -99,7 +95,6 @@ def main():
         zones.append(zone)
 
     # Start the event loop
-
     client.devices = devices
     client.zones = zones
     client.setup_subscriptions()

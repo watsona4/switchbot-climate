@@ -1,4 +1,10 @@
-"""Stores the common values and classes, and exposes the other modules."""
+"""
+This module sets up logging for the SwitchBot Climate application and imports
+the main classes used in the application.
+
+Attributes:
+    LOG (logging.Logger): The logger for the SwitchBot Climate application.
+"""
 
 import logging
 
@@ -6,9 +12,9 @@ import colorlog
 
 LOG: logging.Logger = logging.getLogger("switchbot-climate")
 
-_handler = logging.StreamHandler()
+__handler = logging.StreamHandler()
 
-_formatter = colorlog.LevelFormatter(
+__formatter = colorlog.LevelFormatter(
     fmt={
         "DEBUG": "[{asctime}] {log_color}({levelname})  {module}::{funcName}: {message}",
         "INFO": "[{asctime}] ({log_color}{levelname}{reset}) {blue}{message}",
@@ -26,9 +32,9 @@ _formatter = colorlog.LevelFormatter(
     style="{",
 )
 
-_handler.setFormatter(_formatter)
+__handler.setFormatter(__formatter)
 
-LOG.addHandler(_handler)
+LOG.addHandler(__handler)
 
 from .client import Client  # noqa: F401,E402
 from .device import Device, FanMode, Mode, PresetMode  # noqa: F401,E402

@@ -1,20 +1,41 @@
-"""Stores utliity functions."""
 
 from datetime import timedelta
 
 
 def c_to_f(temp: float | str) -> float:
-    """Converts Celsius to Fahrenheit"""
+    """Convert Celsius to Fahrenheit.
+
+    Args:
+        temp (float | str): Temperature in Celsius. Can be a float or a string representation of a float.
+
+    Returns:
+        float: Temperature in Fahrenheit, rounded to one decimal place. Returns None if input is None.
+    """
     return None if temp is None else round(float(temp) * 9 / 5 + 32, 1)
 
 
 def f_to_c(temp: float | str) -> float:
-    """Converts Fahrenheit to Celsius"""
+    """Convert Fahrenheit to Celsius.
+
+    Args:
+        temp (float | str): Temperature in Fahrenheit. Can be a float or a string representation of a float.
+
+    Returns:
+        float: Temperature in Celsius, rounded to one decimal place. Returns None if input is None.
+    """
     return None if temp is None else round((float(temp) - 32) * 5 / 9, 1)
 
 
 def format_td(delta: timedelta) -> str:
-    """Formats a timedelta object as a human readable string"""
+    """
+    Format a timedelta object into a human-readable string.
+
+    Args:
+        delta (timedelta): The timedelta object to format.
+
+    Returns:
+        str: A human-readable string representing the timedelta.
+    """
 
     result = []
     if days := delta.days:

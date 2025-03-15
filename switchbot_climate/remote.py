@@ -13,6 +13,14 @@ from .util import c_to_f
 
 
 class Remote:
+    """
+    A class to interact with the SwitchBot API for controlling remote devices.
+
+    Attributes:
+        endpoint (str): The API endpoint for SwitchBot.
+        modes (Dict): A dictionary mapping Mode enums to their corresponding API values.
+        fan_modes (Dict): A dictionary mapping FanMode enums to their corresponding API values.
+    """
 
     endpoint: str = "https://api.switch-bot.com/v1.1"
 
@@ -34,18 +42,31 @@ class Remote:
     }
 
     def __init__(self, token: str, key: str):
+        """
+        Initialize the Remote class with the given token and key.
 
+        Args:
+            token (str): The API token for authentication.
+            key (str): The API key for signing requests.
+        """
         self.token = token
         self.key = key
 
         self.device_id: str = None
-
         self.sent_state: str = None
         self.sent_mode: Mode = None
 
     @staticmethod
     def format_send_state(state: str) -> str:
+        """
+        Format the send state string for logging.
 
+        Args:
+            state (str): The state string to format.
+
+        Returns:
+            str: The formatted state string.
+        """
         def mode_gen(x):
             return (k for k, v in Remote.modes.items() if v == int(x))
 
@@ -59,7 +80,15 @@ class Remote:
         )
 
     def get_device_info(self) -> List[Dict[str, str]]:
+        """
+        Get the list of devices from the SwitchBot API.
 
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries containing device information.
+
+        Raises:
+            requests.RequestException: If the request to the API fails.
+        """
         headers = self._get_headers()
 
         url = f"{self.endpoint}/devices"
@@ -71,7 +100,12 @@ class Remote:
         return response.json()["body"]["infraredRemoteList"]
 
     def _get_headers(self) -> Dict[str, str]:
+        """
+        Generate the headers required for API requests.
 
+        Returns:
+            Dict[str, str]: A dictionary containing the headers.
+        """
         nonce = uuid.uuid4()
         timestamp = int(round(time.time() * 1000))
         string_to_sign = bytes(f"{self.token}{timestamp}{nonce}", "utf-8")
@@ -92,7 +126,18 @@ class Remote:
     def post(
         self, device: Device, temp: float = None, mode: Mode = None, fan_mode: FanMode = None
     ) -> bool:
+        """
+        Send a command to the device to set its state.
 
+        Args:
+            device (Device): The device to control.
+            temp (float, optional): The temperature to set. Defaults to None.
+            mode (Mode, optional): The mode to set. Defaults to None.
+            fan_mode (FanMode, optional): The fan mode to set. Defaults to None.
+
+        Returns:
+            bool: True if the command was sent successfully, False otherwise.
+        """
         send_power = "off" if mode == Mode.OFF else "on"
         send_mode = self.modes[mode] or self.sent_mode or self.modes[Mode.FAN_ONLY]
         send_fan_mode = self.fan_modes[fan_mode]
@@ -104,7 +149,6 @@ class Remote:
         LOG.info(f"Remote: {device.device_id}: {send_state_formatted}{status}")
 
         if send_state != self.sent_state:
-
             self.sent_mode = mode
             self.sent_state = send_state
 
