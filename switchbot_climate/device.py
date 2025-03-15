@@ -1,12 +1,11 @@
 import json
-from datetime import datetime as dt
+from datetime import datetime
 from enum import StrEnum
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, List, Tuple
 
 from . import LOG
 from .client import Client, MQTTMessage
 from .util import c_to_f, format_td
-from .zone import Zone
 
 
 class Mode(StrEnum):
@@ -45,15 +44,11 @@ class Device:
     MAX_HUMIDITY: int = 100
     HUMIDITY_TOLERANCE: int = 5
 
-    last_message = [dt.now()]
+    last_message: List[datetime] = [datetime.now()]
 
-    def __init__(self, name: str, mqtt_host: str, mqtt_port: int):
-
-        from .remote import Remote
+    def __init__(self, name: str):
 
         self.name: str = name
-        self.mqtt_host: str = mqtt_host
-        self.mqtt_port: int = mqtt_port
 
         self._target_temp: float = None
         self._target_humidity: int = None
@@ -73,20 +68,22 @@ class Device:
         self._temperature: float = None
         self._humidity: int = None
 
-        self.client = None
+        self.client: Client = None
 
-        self.last_sent_mode = None
+        self.old_mode: Mode = None
+        self.old_target_temp: float = None
+        self.last_sent_mode: Mode = None
 
     @property
-    def clamp(self):
+    def clamp(self) -> str:
         return self.clamp_id
 
     @clamp.setter
-    def clamp(self, clamp):
+    def clamp(self, clamp: str):
         self.clamp_id, self.current_id = clamp.split("/")
 
     @property
-    def target_temp(self):
+    def target_temp(self) -> float:
         return self._target_temp
 
     @target_temp.setter
@@ -94,7 +91,7 @@ class Device:
         self._target_temp = round(target_temp, 1)
 
     @property
-    def target_humidity(self):
+    def target_humidity(self) -> int:
         return self._target_humidity
 
     @target_humidity.setter
@@ -102,7 +99,7 @@ class Device:
         self._target_humidity = round(target_humidity)
 
     @property
-    def temperature(self):
+    def temperature(self) -> float:
         return self._temperature
 
     @temperature.setter
@@ -110,7 +107,7 @@ class Device:
         self._temperature = round(temperature, 1)
 
     @property
-    def humidity(self):
+    def humidity(self) -> int:
         return self._humidity
 
     @humidity.setter
@@ -130,15 +127,15 @@ class Device:
             f"switchbot/{self.temp_device_id}/status", self.on_switchbot
         )
 
-    def subscribe(self, topic: str, callback: Callable):
+    def subscribe(self, topic: str, callback: Callable[[str], None]):
         self.client.subscribe(topic)
         self.wrap_callback(topic, callback)
 
-    def wrap_callback(self, topic: str, callback: Any):
+    def wrap_callback(self, topic: str, callback: Callable[[str], None]):
 
         def callback_wrapper(client: Client, userdata: Any, message: MQTTMessage):
-            time_str = format_td(dt.now() - self.last_message[0])
-            self.last_message[0] = dt.now()
+            time_str = format_td(datetime.now() - self.last_message[0])
+            self.last_message[0] = datetime.now()
             payload: str = message.payload.decode()
             LOG.info(
                 f"\033[1;32m{self.name}: {time_str} later...received {payload} from"
@@ -201,8 +198,8 @@ class Device:
 
     def on_switchbot(self, client: Client, userdata: Any, message: MQTTMessage):
 
-        time_str = format_td(dt.now() - self.last_message[0])
-        self.last_message[0] = dt.now()
+        time_str = format_td(datetime.now() - self.last_message[0])
+        self.last_message[0] = datetime.now()
 
         msg = json.loads(message.payload.decode())
 
@@ -226,6 +223,8 @@ class Device:
                 f" ({self.target_humidity + Device.HUMIDITY_TOLERANCE}), going into DRY"
                 " mode"
             )
+            self.old_mode = self.mode
+            self.old_target_temp = self.target_temp
             self.mode = Mode.DRY
             self.post(mode=Mode.DRY)
 
@@ -333,12 +332,11 @@ class Device:
 
         LOG.info(f"{self.name}: Posting {temp=}, {mode=}, {fan_mode=}")
 
-        self.last_sent_mode = mode
-
         temp = temp or self.target_temp
         fan_mode = fan_mode or self.fan_mode
 
         if self.remote.post(self, temp, mode, fan_mode):
+            self.last_sent_mode = mode
             self.publish_states()
 
     def publish_measurements(self):
@@ -353,9 +351,7 @@ class Device:
         self.client.publish(f"{self.name}/target_humidity", self.target_humidity, retain=True)
         self.client.publish(f"{self.name}/action", self.action, retain=True)
 
-    def publish_send_state(self, send_state):
-
-        from .remote import Remote
+    def publish_send_state(self, send_state: str):
 
         self.client.publish(
             f"{self.name}/attributes",
@@ -378,3 +374,7 @@ class Device:
 
     def publish_mode_cmd(self):
         self.client.publish(f"{self.name}/mode_cmd", self.mode, retain=True)
+
+
+from .remote import Remote  # noqa: E402
+from .zone import Zone  # noqa: E402

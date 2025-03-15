@@ -1,21 +1,26 @@
+from typing import TYPE_CHECKING, List
+
 from . import LOG
+from .device import Mode
+
+if TYPE_CHECKING:
+    from .client import Client  # pragma: no cover
+    from .device import Device  # pragma: no cover
 
 
 class Zone:
 
     def __init__(self, name: str):
 
-        self.name = name
+        self.name: str = name
 
-        self.devices = []
-        self.primary = None
-        self.client = None
+        self.devices: List[Device] = []
+        self.primary: Device = None
+        self.client: Client = None
 
-        self.primary_initialized = False
+        self.primary_initialized: bool = False
 
-    def get_auth(self, device_name: str, mode) -> bool:
-
-        from .device import Mode
+    def get_auth(self, device_name: str, mode: Mode) -> bool:
 
         if (
             self.primary_initialized is False
@@ -31,20 +36,18 @@ class Zone:
             or device_name == self.primary.name
             or self.primary.mode == Mode.OFF
         ):
-            LOG.info(f"Zone {self.name}:     granted :-)")
+            LOG.info(f"Zone {self.name}:     \033[32mgranted :-)\033[0m")
             self._sync(device_name, mode)
             return True
 
-        LOG.info(f"Zone {self.name}:     DENIED :-(")
+        LOG.info(f"Zone {self.name}:     \033[31mDENIED :-(\033[0m")
         return False
 
-    def _sync(self, device_name: str, mode):
-
-        from .device import Mode
+    def _sync(self, device_name: str, mode: Mode):
 
         if not self.primary_initialized:
             return
-        
+
         for device in self.devices:
             if device.name != device_name and device.mode != Mode.OFF:
                 device.post_command(mode=mode if mode != Mode.OFF else device.mode)
@@ -69,7 +72,7 @@ class Zone:
         for device in self.devices:
             device.on_clamp(*args, **kwargs)
 
-    def other_mode(self):
+    def other_mode(self) -> Mode:
         """If the primary doesn't need to set a mode because its temperature is in range,
         then set the mode of the other device in this zone.
         """
@@ -78,5 +81,5 @@ class Zone:
                 return device.remote.sent_mode
         return None
 
-    def is_primary(self, device):
+    def is_primary(self, device) -> bool:
         return self.primary == device

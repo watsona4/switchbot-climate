@@ -1,15 +1,12 @@
 import argparse
+import copy
 import logging
 from typing import List
 
 import yaml
 from yaml import CLoader as Loader
 
-from . import LOG
-from .client import Client
-from .device import Device, FanMode, Mode, PresetMode
-from .remote import Remote
-from .zone import Zone
+from . import LOG, Client, Device, FanMode, Mode, PresetMode, Remote, Zone
 
 
 def main():
@@ -56,7 +53,7 @@ def main():
     devices: List[Device] = []
     for name, entry in config["climates"].items():
 
-        device = Device(name, mqtt_host, mqtt_port)
+        device = Device(name)
 
         device.target_temp = entry["temperature"] if "temperature" in entry else None
         device.target_humidity = entry["humidity"] if "humidity" in entry else None
@@ -69,7 +66,7 @@ def main():
         device.device_id = device_ids[name]
 
         device.client = client
-        device.remote = Remote(token, key)
+        device.remote = copy.deepcopy(remote)
 
         if "primary" in entry and entry["primary"]:
             device.primary = True
@@ -88,8 +85,12 @@ def main():
                 zone.devices.append(device)
                 device.zone = zone
 
+        if len(zone.devices) == 1:
+            zone.primary = zone.devices[0]
+            zone.primary.primary = True
+        else:
+            for device in zone.devices:
                 if device.primary:
-
                     if zone.primary is None:
                         zone.primary = device
                     else:
@@ -111,4 +112,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover

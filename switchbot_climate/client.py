@@ -1,20 +1,26 @@
-import paho.mqtt.client as mqtt
+from typing import TYPE_CHECKING, List
+
+import paho.mqtt as mqtt
 from paho.mqtt.client import MQTTMessage  # noqa: F401
 from paho.mqtt.enums import CallbackAPIVersion
 
 from . import LOG
 
+if TYPE_CHECKING:
+    from .device import Device  # pragma: no cover
+    from .zone import Zone  # pragma: no cover
 
-class Client(mqtt.Client):
+
+class Client(mqtt.client.Client):
 
     def __init__(self, host: str, port: int):
         super().__init__(callback_api_version=CallbackAPIVersion.VERSION2)
 
-        self._host = host
-        self._port = port
+        self._host: str = host
+        self._port: str = port
 
-        self.devices = []
-        self.zones = []
+        self.devices: List[Device] = []
+        self.zones: List[Zone] = []
 
         self.enable_logger(LOG)
 

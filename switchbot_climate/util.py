@@ -16,18 +16,18 @@ def f_to_c(temp: float | str) -> float:
 def format_td(delta: timedelta) -> str:
     """Formats a timedelta object as a human readable string"""
 
-    result = ""
+    result = []
     if days := delta.days:
-        result += f"{days} day{'s' if days > 1 else ''}, "
+        result.append(f"{days} day{'s' if days > 1 else ''}")
     if hours := delta.seconds // 3600:
-        result += f"{hours} hour{'s' if hours > 1 else ''}, "
+        result.append(f"{hours} hour{'s' if hours > 1 else ''}")
     if minutes := (delta.seconds % 3600) // 60:
-        result += f"{minutes} minutes{'s' if minutes > 1 else ''}, "
+        result.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
     if seconds := delta.seconds % 60:
-        result += f"{seconds} second{'s' if seconds > 1 else ''}"
+        result.append(f"{seconds} second{'s' if seconds > 1 else ''}")
     elif milliseconds := delta.microseconds // 1000:
-        result += f"{milliseconds} millisecond{'s' if milliseconds > 1 else ''}"
-    else:
-        result += f"{delta.microseconds} microseconds"
+        result.append(f"{milliseconds} millisecond{'s' if milliseconds > 1 else ''}")
+    elif microseconds := delta.microseconds:
+        result.append(f"{microseconds} microsecond{'s' if microseconds > 1 else ''}")
 
-    return result
+    return ", ".join(result)

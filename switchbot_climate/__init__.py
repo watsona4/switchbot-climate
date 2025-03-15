@@ -29,3 +29,8 @@ _formatter = colorlog.LevelFormatter(
 _handler.setFormatter(_formatter)
 
 LOG.addHandler(_handler)
+
+from .client import Client  # noqa: F401,E402
+from .device import Device, FanMode, Mode, PresetMode  # noqa: F401,E402
+from .remote import Remote  # noqa: F401,E402
+from .zone import Zone  # noqa: F401,E402

@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import time
 import uuid
+from typing import Dict, List
 
 import requests
 
@@ -15,7 +16,7 @@ class Remote:
 
     endpoint: str = "https://api.switch-bot.com/v1.1"
 
-    modes = {
+    modes: Dict = {
         None: None,
         Mode.OFF: 0,
         Mode.AUTO: 1,
@@ -25,7 +26,7 @@ class Remote:
         Mode.HEAT: 5,
     }
 
-    fan_modes = {
+    fan_modes: Dict = {
         FanMode.AUTO: 1,
         FanMode.LOW: 2,
         FanMode.MEDIUM: 3,
@@ -57,7 +58,7 @@ class Remote:
             f" power={p}"
         )
 
-    def get_device_info(self):
+    def get_device_info(self) -> List[Dict[str, str]]:
 
         headers = self._get_headers()
 
@@ -69,7 +70,7 @@ class Remote:
 
         return response.json()["body"]["infraredRemoteList"]
 
-    def _get_headers(self) -> dict:
+    def _get_headers(self) -> Dict[str, str]:
 
         nonce = uuid.uuid4()
         timestamp = int(round(time.time() * 1000))
@@ -89,11 +90,7 @@ class Remote:
         }
 
     def post(
-        self,
-        device: Device,
-        temp: float = None,
-        mode: Mode = None,
-        fan_mode: FanMode = None,
+        self, device: Device, temp: float = None, mode: Mode = None, fan_mode: FanMode = None
     ) -> bool:
 
         send_power = "off" if mode == Mode.OFF else "on"
