@@ -10,7 +10,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN mkdir switchbot_climate
-COPY *.py switchbot_climate
+COPY switchbot_climate switchbot_climate
 
 CMD ["python", "-m", "switchbot_climate", "-c", "/data/config.yaml"]

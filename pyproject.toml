@@ -1,4 +1,32 @@
-[tool.pytest.ini_options]
-pythonpath = [
-  "."
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "switchbot_climate"
+version = "0.1.0"
+description = "A Python package to integrate SwitchBot devices with MQTT for climate control."
+authors = [
+    { name = "Aaron Watson", email = "watsona4@gmail.com" },
 ]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "paho-mqtt >= 2.1",
+    "pyyaml",
+    "colorlog",
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://github.com/watsona4/switchbot_climate"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+include = ["switchbot_climate/**", "README.md"]
+
+[tool.hatch.build.targets.wheel]
+include = ["switchbot_climate/**", "README.md"]

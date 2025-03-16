@@ -62,7 +62,7 @@ class Device:
 
     MIN_TEMP: float = 16.0
     MAX_TEMP: float = 30.0
-    TOLERANCE: float = round(2.0 * 5 / 9, 1)
+    TOLERANCE: float = 1.0
 
     MIN_HUMIDITY: int = 30
     MAX_HUMIDITY: int = 100
