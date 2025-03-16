@@ -1,0 +1,18 @@
+requires = ["tox>=4.19"]
+env_list = ["fix", "3.13", "3.12", "3.11", "type"]
+
+[env_run_base]
+description = "Run test under {base_python}"
+deps = ["pytest", "pytest-cov"]
+allowlist_externals = ["pytest"]
+commands = [["pytest", "-x", "--cov=switchbot_climate", "--cov-report=term-missing"]]
+
+[env.fix]
+skip_install = true
+allowlist_externals = ["pre-commit"]
+commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure"]]
+
+[env.type]
+description = "run type check on code base"
+deps = ["mypy==1.11.2", "types-requests"]
+commands = [["mypy", "switchbot_climate"], ["mypy", "tests"]]

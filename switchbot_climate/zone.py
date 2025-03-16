@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING, List
+from typing import Any, List
 
 from . import LOG
-from .device import Mode
-
-if TYPE_CHECKING:
-    from .client import Client  # pragma: no cover
-    from .device import Device  # pragma: no cover
+from .client import Client  # pragma: no cover
+from .device import Device, Mode, MQTTClient, MQTTMessage  # pragma: no cover
 
 
 class Zone:
@@ -54,8 +51,8 @@ class Zone:
         self.name: str = name
 
         self.devices: List[Device] = []
-        self.primary: Device = None
-        self.client: Client = None
+        self.primary: Device | None = None
+        self.client: Client
 
         self.primary_initialized: bool = False
 
@@ -117,7 +114,8 @@ class Zone:
 
         for device in self.devices:
             if device.name != device_name and device.mode != Mode.OFF:
-                device.post_command(mode=mode if mode != Mode.OFF else device.mode)
+                mode = mode if mode != Mode.OFF else device.mode
+                device.post_command(mode)
 
     def setup_subscriptions(self):
         """
@@ -143,12 +141,13 @@ class Zone:
 
         topic = f"zigbee2mqtt/{clamp_id}"
 
-        self.client.subscribe(topic)
-        self.client.message_callback_add(topic, self.on_clamp)
+        if self.client is not None:
+            self.client.subscribe(topic)
+            self.client.message_callback_add(topic, self.on_clamp)
 
-    def on_clamp(self, *args, **kwargs):
+    def on_clamp(self, client: MQTTClient, userdata: Any, message: MQTTMessage):
         for device in self.devices:
-            device.on_clamp(*args, **kwargs)
+            device.on_clamp(client, userdata, message)
 
     def other_mode(self) -> Mode:
         """Determines the mode of the secondary device in the zone.
@@ -159,10 +158,12 @@ class Zone:
         Returns:
             Mode: The mode of the secondary device if found, otherwise None.
         """
+
         for device in self.devices:
-            if device != self.primary:
+            if device != self.primary and device.remote is not None:
                 return device.remote.sent_mode
-        return None
+
+        return Mode.NONE
 
     def is_primary(self, device) -> bool:
         """Check if the given device is the primary device.

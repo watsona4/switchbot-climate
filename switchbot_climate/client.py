@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List
 
-import paho.mqtt as mqtt
+from paho.mqtt.client import Client as MQTTClient
 from paho.mqtt.client import MQTTMessage  # noqa: F401
 from paho.mqtt.enums import CallbackAPIVersion
 
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .zone import Zone  # pragma: no cover
 
 
-class Client(mqtt.client.Client):
+class Client(MQTTClient):
     """
     A class to represent an MQTT client for SwitchBot devices and zones.
 
@@ -33,7 +33,7 @@ class Client(mqtt.client.Client):
         super().__init__(callback_api_version=CallbackAPIVersion.VERSION2)
 
         self._host: str = host
-        self._port: str = port
+        self._port: int = port
 
         self.devices: List[Device] = []
         self.zones: List[Zone] = []
@@ -52,7 +52,7 @@ class Client(mqtt.client.Client):
         for device in self.devices:
             device.setup_subscriptions()
 
-    def on_connect(self, *args, **kwargs):
+    def on_connect(self, *args, **kwargs):  # type: ignore[override]
         """
         Handle the event when the client connects to the MQTT broker.
 

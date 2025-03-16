@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from switchbot_climate.client import Client
+from switchbot_climate.client import Client, MQTTMessage
 from switchbot_climate.device import Device, Mode
 from switchbot_climate.remote import Remote
 from switchbot_climate.zone import Zone
@@ -102,7 +102,7 @@ def test_sync_two_devices(mock_zone2, mock_device1, mock_device2):
     mock_device1.mode = Mode.HEAT
     mock_device2.mode = Mode.COOL
     mock_zone2._sync("Device1", Mode.HEAT)
-    mock_device2.post_command.assert_called_once_with(mode=Mode.HEAT)
+    mock_device2.post_command.assert_called_once_with(Mode.HEAT)
 
 
 def test_sync_with_off_mode_one_device(mock_zone1, mock_device1):
@@ -162,7 +162,7 @@ def test_sync_devices_with_different_modes(mock_zone2, mock_device1, mock_device
     mock_device1.mode = Mode.COOL
     mock_device2.mode = Mode.HEAT
     mock_zone2._sync("Device1", Mode.OFF)
-    mock_device2.post_command.assert_called_once_with(mode=Mode.HEAT)
+    mock_device2.post_command.assert_called_once_with(Mode.HEAT)
 
 
 def test_setup_subscriptions_multiple_clamps(mock_zone2, mock_device2):
@@ -190,7 +190,7 @@ def test_setup_subscriptions_two_devices(mock_zone2, mock_device2, mock_client):
 
 def test_other_mode_one_device(mock_zone1, mock_device1):
     mock_device1.remote.sent_mode = Mode.HEAT
-    assert mock_zone1.other_mode() is None
+    assert mock_zone1.other_mode() == Mode.NONE
 
 
 def test_other_mode_two_devices(mock_zone2, mock_device2):
@@ -199,14 +199,16 @@ def test_other_mode_two_devices(mock_zone2, mock_device2):
 
 
 def test_on_clamp_one_device(mock_zone1, mock_device1):
-    mock_zone1.on_clamp("arg1", key="value")
-    mock_device1.on_clamp.assert_called_once_with("arg1", key="value")
+    mock_message = MagicMock(spec=MQTTMessage)
+    mock_zone1.on_clamp(mock_zone1.client, None, mock_message)
+    mock_device1.on_clamp.assert_called_once_with(mock_zone1.client, None, mock_message)
 
 
 def test_on_clamp_two_devices(mock_zone2, mock_device1, mock_device2):
-    mock_zone2.on_clamp("arg1", key="value")
-    mock_device1.on_clamp.assert_called_once_with("arg1", key="value")
-    mock_device2.on_clamp.assert_called_once_with("arg1", key="value")
+    mock_message = MagicMock(spec=MQTTMessage)
+    mock_zone2.on_clamp(mock_zone2.client, None, mock_message)
+    mock_device1.on_clamp.assert_called_once_with(mock_zone2.client, None, mock_message)
+    mock_device2.on_clamp.assert_called_once_with(mock_zone2.client, None, mock_message)
 
 
 def test_is_primary_one_device(mock_zone1, mock_device1):

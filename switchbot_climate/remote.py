@@ -25,7 +25,7 @@ class Remote:
     endpoint: str = "https://api.switch-bot.com/v1.1"
 
     modes: Dict = {
-        None: None,
+        Mode.NONE: 4,
         Mode.OFF: 0,
         Mode.AUTO: 1,
         Mode.COOL: 2,
@@ -35,6 +35,7 @@ class Remote:
     }
 
     fan_modes: Dict = {
+        FanMode.NONE: 1,
         FanMode.AUTO: 1,
         FanMode.LOW: 2,
         FanMode.MEDIUM: 3,
@@ -52,9 +53,9 @@ class Remote:
         self.token = token
         self.key = key
 
-        self.device_id: str = None
-        self.sent_state: str = None
-        self.sent_mode: Mode = None
+        self.device_id: str = ""
+        self.sent_state: str = ""
+        self.sent_mode: Mode = Mode.NONE
 
     @staticmethod
     def format_send_state(state: str) -> str:
@@ -67,6 +68,7 @@ class Remote:
         Returns:
             str: The formatted state string.
         """
+
         def mode_gen(x):
             return (k for k, v in Remote.modes.items() if v == int(x))
 
@@ -124,7 +126,11 @@ class Remote:
         }
 
     def post(
-        self, device: Device, temp: float = None, mode: Mode = None, fan_mode: FanMode = None
+        self,
+        device: Device,
+        temp: float,
+        mode: Mode = Mode.NONE,
+        fan_mode: FanMode = FanMode.NONE,
     ) -> bool:
         """
         Send a command to the device to set its state.
@@ -139,7 +145,7 @@ class Remote:
             bool: True if the command was sent successfully, False otherwise.
         """
         send_power = "off" if mode == Mode.OFF else "on"
-        send_mode = self.modes[mode] or self.sent_mode or self.modes[Mode.FAN_ONLY]
+        send_mode = self.modes[mode] or self.modes[self.sent_mode] or self.modes[Mode.FAN_ONLY]
         send_fan_mode = self.fan_modes[fan_mode]
         send_state = f"{round(temp)},{send_mode},{send_fan_mode},{send_power}"
 

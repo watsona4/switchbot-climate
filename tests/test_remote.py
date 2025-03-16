@@ -68,6 +68,27 @@ def test_post(mock_post, remote, device):
     device.client = mock_client
 
     result = remote.post(device, temp=25.0, mode=Mode.COOL, fan_mode=FanMode.MEDIUM)
+    assert remote.sent_mode == Mode.COOL
+    assert remote.sent_state == "25,2,3,on"
+    assert result is True
+
+
+@patch("requests.post")
+def test_post_none(mock_post, remote, device):
+    mock_response = MagicMock()
+    mock_response.ok = True
+    mock_post.return_value = mock_response
+    mock_client = MagicMock(spec=Client)
+    device.client = mock_client
+
+    result = remote.post(device, temp=25.0, mode=Mode.NONE, fan_mode=FanMode.NONE)
+    assert remote.sent_mode == Mode.NONE
+    assert remote.sent_state == "25,4,1,on"
+    assert result is True
+
+    result = remote.post(device, temp=20.6, mode=Mode.OFF, fan_mode=FanMode.NONE)
+    assert remote.sent_mode == Mode.OFF
+    assert remote.sent_state == "21,4,1,off"
     assert result is True
 
 

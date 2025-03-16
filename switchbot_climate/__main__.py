@@ -1,12 +1,55 @@
 import argparse
 import copy
 import logging
+from pathlib import Path
 from typing import List
 
-import yaml
-from yaml import CLoader as Loader
+from strictyaml import (
+    Bool,
+    Enum,
+    Float,
+    Int,
+    Map,
+    MapPattern,
+    Optional,
+    Regex,
+    Seq,
+    Str,
+    Url,
+    load,
+)
 
 from . import LOG, Client, Device, FanMode, Mode, PresetMode, Remote, Zone
+
+# Schema for configuration file
+SCHEMA = Map(
+    {
+        "mqtt_host": Url() | Str(),
+        Optional("mqtt_port", 1883): Int(),
+        "climates": MapPattern(
+            Str(),
+            Map(
+                {
+                    "temperature": Float(),
+                    "humidity": Int(),
+                    "mode": Enum(["off", "auto", "cool", "heat", "dry", "fan_only"]),
+                    "fan_mode": Enum(["auto", "low", "medium", "high"]),
+                    "preset_mode": Enum(["none", "away"]),
+                    "temp_device_id": Regex(r"^[A-Fa-f0-9]{12}$"),
+                    "clamp": Regex(r"^[A-Za-z0-9\s]+\/[A-Za-z0-9_]+$"),
+                    Optional("primary", False): Bool(),
+                }
+            ),
+            minimum_keys=1,
+        ),
+        "zones": MapPattern(
+            Str(),
+            Seq(Str()),
+        ),
+        "token": Str(),
+        "key": Str(),
+    }
+)
 
 
 def main():
@@ -32,11 +75,10 @@ def main():
     LOG.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     # Read the config file
-    with open(args.config) as config_file:
-        config = yaml.load(config_file, Loader=Loader)
+    config = load(Path(args.config).read_text(), SCHEMA).data
 
     mqtt_host = config["mqtt_host"]
-    mqtt_port = config["mqtt_port"] if "mqtt_port" in config else 1883
+    mqtt_port = config["mqtt_port"]
     token = config["token"]
     key = config["key"]
 
@@ -55,9 +97,11 @@ def main():
 
         device.target_temp = entry["temperature"] if "temperature" in entry else None
         device.target_humidity = entry["humidity"] if "humidity" in entry else None
-        device.mode = Mode(entry["mode"]) if "mode" in entry else None
-        device.fan_mode = FanMode(entry["fan_mode"]) if "fan_mode" in entry else None
-        device.preset_mode = PresetMode(entry["preset_mode"]) if "preset_mode" in entry else None
+        device.mode = Mode(entry["mode"]) if "mode" in entry else Mode.NONE
+        device.fan_mode = FanMode(entry["fan_mode"]) if "fan_mode" in entry else FanMode.NONE
+        device.preset_mode = (
+            PresetMode(entry["preset_mode"]) if "preset_mode" in entry else PresetMode.NONE
+        )
         device.temp_device_id = entry["temp_device_id"]
         device.clamp = entry["clamp"]
 

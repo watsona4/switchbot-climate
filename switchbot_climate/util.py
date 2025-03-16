@@ -1,8 +1,7 @@
-
 from datetime import timedelta
 
 
-def c_to_f(temp: float | str) -> float:
+def c_to_f(temp: float | str | None) -> float | None:
     """Convert Celsius to Fahrenheit.
 
     Args:
@@ -14,7 +13,7 @@ def c_to_f(temp: float | str) -> float:
     return None if temp is None else round(float(temp) * 9 / 5 + 32, 1)
 
 
-def f_to_c(temp: float | str) -> float:
+def f_to_c(temp: float | str | None) -> float | None:
     """Convert Fahrenheit to Celsius.
 
     Args:

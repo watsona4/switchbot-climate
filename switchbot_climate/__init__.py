@@ -32,7 +32,7 @@ __formatter = colorlog.LevelFormatter(
     style="{",
 )
 
-__handler.setFormatter(__formatter)
+__handler.setFormatter(__formatter)  # type: ignore[arg-type]
 
 LOG.addHandler(__handler)
 

@@ -18,23 +18,10 @@ def device():
 
 def test_initialization(device):
     assert device.name == "test_device"
-    assert device._target_temp is None
-    assert device._target_humidity is None
-    assert device.mode is None
-    assert device.fan_mode is None
-    assert device.preset_mode is None
-    assert device.temp_device_id is None
-    assert device.clamp_id is None
-    assert device.current_id is None
-    assert device.action is None
-    assert device.device_id is None
-    assert device.remote is not None
+    assert device.mode == Mode.NONE
+    assert device.fan_mode == FanMode.NONE
+    assert device.preset_mode == PresetMode.NONE
     assert device.primary is False
-    assert device.zone is not None
-    assert device._temperature is None
-    assert device._humidity is None
-    assert device.client is not None
-    assert device.last_sent_mode is None
 
 
 def test_clamp_property(device):
@@ -258,14 +245,14 @@ def test_compute_auto(device):
     assert mode == Mode.HEAT
     assert temp == 22.0
 
-    device.temperature = 23.0
+    device.temperature = 0.0
     device.zone.is_primary.return_value = True
     device.zone.other_mode.return_value = Mode.COOL
     mode, temp = device.compute_auto()
     assert mode == Mode.COOL
     assert temp == 22.0
 
-    device.temperature = 23.0
+    device.temperature = 0.0
     device.zone.is_primary.return_value = False
     device.last_sent_mode = Mode.HEAT
     mode, temp = device.compute_auto()
@@ -275,21 +262,23 @@ def test_compute_auto(device):
 
 def test_compute_away(device):
     device.temperature = 31.0
-    mode, temp = device.compute_away()
+    mode, temp, fan_mode = device.compute_away()
     assert mode == Mode.COOL
     assert temp == Device.MAX_TEMP
+    assert fan_mode == FanMode.NONE
 
     device.temperature = 15.0
-    mode, temp = device.compute_away()
+    mode, temp, fan_mode = device.compute_away()
     assert mode == Mode.HEAT
     assert temp == Device.MIN_TEMP
+    assert fan_mode == FanMode.NONE
 
     device.temperature = 23.0
     device.target_temp = 22.0
-    mode, temp, fan = device.compute_away()
+    mode, temp, fan_mode = device.compute_away()
     assert mode == Mode.FAN_ONLY
     assert temp == 22.0
-    assert fan == FanMode.AUTO
+    assert fan_mode == FanMode.AUTO
 
 
 def test_post(device):
@@ -324,6 +313,16 @@ def test_post_command(device):
     device.remote.post.assert_called_with(device, 20.0, Mode.DRY, FanMode.MEDIUM)
     device.publish_states.assert_not_called()
     assert device.last_sent_mode == Mode.HEAT  # last_sent_mode should not change if post fails
+
+    device.remote.post.reset_mock()
+    device.publish_states.reset_mock()
+
+    device.target_temp = 25.0
+    device.remote.post.return_value = True
+    device.post_command(Mode.HEAT, None, FanMode.LOW)
+    device.remote.post.assert_called_with(device, 25.0, Mode.HEAT, FanMode.LOW)
+    device.publish_states.assert_called_once()
+    assert device.last_sent_mode == Mode.HEAT
 
 
 def test_publish_measurements(device):

@@ -11,16 +11,26 @@ authors = [
 ]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "paho-mqtt >= 2.1",
-    "pyyaml",
     "colorlog",
     "requests",
+    "strictyaml",
 ]
 
 [project.urls]
 Homepage = "https://github.com/watsona4/switchbot_climate"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "mypy",
+    "types-requests",
+]
+test = [
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -30,3 +40,17 @@ include = ["switchbot_climate/**", "README.md"]
 
 [tool.hatch.build.targets.wheel]
 include = ["switchbot_climate/**", "README.md"]
+
+[tool.mypy]
+check_untyped_defs = true
+ignore_missing_imports = true
+implicit_optional = true
+
+[tool.black]
+line-length = 99
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

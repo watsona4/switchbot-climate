@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, Callable, List, Tuple
 
 from . import LOG
-from .client import Client, MQTTMessage
+from .client import Client, MQTTClient, MQTTMessage
 from .util import c_to_f, format_td
 
 
@@ -12,6 +12,8 @@ class Mode(StrEnum):
     """
     Enum representing the different modes of the device.
     """
+
+    NONE = "none"
     OFF = "off"
     AUTO = "auto"
     COOL = "cool"
@@ -24,6 +26,8 @@ class FanMode(StrEnum):
     """
     Enum representing the different fan modes of the device.
     """
+
+    NONE = "none"
     AUTO = "auto"
     LOW = "low"
     MEDIUM = "medium"
@@ -34,6 +38,7 @@ class PowerMode(StrEnum):
     """
     Enum representing the power modes of the device.
     """
+
     ON = "ON"
     OFF = "OFF"
 
@@ -42,6 +47,7 @@ class PresetMode(StrEnum):
     """
     Enum representing the preset modes of the device.
     """
+
     NONE = "none"
     AWAY = "away"
 
@@ -79,29 +85,30 @@ class Device:
         """
         self.name: str = name
 
-        self._target_temp: float = None
-        self._target_humidity: int = None
-        self.mode: Mode = None
-        self.fan_mode: FanMode = None
-        self.preset_mode: PresetMode = None
-        self.temp_device_id: str = None
-        self.clamp_id: str = None
-        self.current_id: str = None
-        self.action: str = None
+        self._target_temp: float = 0.0
+        self._target_humidity: int = 0
 
-        self.device_id: str = None
-        self.remote: Remote = None
+        self.mode: Mode = Mode.NONE
+        self.fan_mode: FanMode = FanMode.NONE
+        self.preset_mode: PresetMode = PresetMode.NONE
+        self.temp_device_id: str = ""
+        self.clamp_id: str = ""
+        self.current_id: str = ""
+        self.action: str = ""
+
+        self.device_id: str = ""
+        self.remote: Remote
         self.primary: bool = False
-        self.zone: Zone = None
+        self.zone: Zone
 
-        self._temperature: float = None
-        self._humidity: int = None
+        self._temperature: float = 0.0
+        self._humidity: int = 0
 
-        self.client: Client = None
+        self.client: Client
 
-        self.old_mode: Mode = None
-        self.old_target_temp: float = None
-        self.last_sent_mode: Mode = None
+        self.old_mode: Mode = Mode.NONE
+        self.old_target_temp: float = 0.0
+        self.last_sent_mode: Mode = Mode.NONE
 
     @property
     def clamp(self) -> str:
@@ -237,7 +244,8 @@ class Device:
             topic (str): The MQTT topic.
             callback (Callable[[str], None]): The callback function to handle messages.
         """
-        def callback_wrapper(client: Client, userdata: Any, message: MQTTMessage):
+
+        def callback_wrapper(client: MQTTClient, userdata: Any, message: MQTTMessage):
             time_str = format_td(datetime.now() - self.last_message[0])
             self.last_message[0] = datetime.now()
             payload: str = message.payload.decode()
@@ -338,7 +346,7 @@ class Device:
                 case Mode.OFF:
                     self.post(mode=Mode.OFF)
 
-    def on_switchbot(self, client: Client, userdata: Any, message: MQTTMessage):
+    def on_switchbot(self, client: MQTTClient, userdata: Any, message: MQTTMessage):
         """
         Handle messages from the SwitchBot device.
 
@@ -394,7 +402,7 @@ class Device:
             LOG.info(f"{self.name}: In AUTO mode, calculating updated mode")
             self.post(*self.compute_auto())
 
-    def on_clamp(self, client: Client, userdata: Any, message: MQTTMessage):
+    def on_clamp(self, client: MQTTClient, userdata: Any, message: MQTTMessage):
         """
         Handle messages from the clamp device.
 
@@ -434,8 +442,7 @@ class Device:
         bottom = round(self.target_temp - Device.TOLERANCE, 1)
         top = round(self.target_temp + Device.TOLERANCE, 1)
 
-        if self.temperature is not None:
-
+        if self.temperature != 0.0:
             if self.temperature >= top:
                 LOG.info(
                     f"{self.name}: temperature ({c_to_f(self.temperature)}) >= target_high"
@@ -463,25 +470,25 @@ class Device:
 
         return mode, self.target_temp
 
-    def compute_away(self) -> Tuple[Mode, float, FanMode | None]:
+    def compute_away(self) -> Tuple[Mode, float, FanMode]:
         """
         Compute the mode, temperature, and fan mode for AWAY mode.
 
         Returns:
-            Tuple[Mode, float, FanMode | None]: The mode, temperature, and fan mode for AWAY mode.
+            Tuple[Mode, float, FanMode]: The mode, temperature, and fan mode for AWAY mode.
         """
         if self.temperature >= Device.MAX_TEMP:
             LOG.info(
                 f"{self.name}: temperature ({c_to_f(self.temperature)}) >= MAX_TEMP"
                 f" ({c_to_f(Device.MAX_TEMP)}), setting away mode to COOL"
             )
-            return Mode.COOL, Device.MAX_TEMP
+            return Mode.COOL, Device.MAX_TEMP, FanMode.NONE
         if self.temperature < Device.MIN_TEMP:
             LOG.info(
                 f"{self.name}: temperature ({c_to_f(self.temperature)}) < MIN_TEMP"
                 f" ({c_to_f(Device.MIN_TEMP)}), setting away mode to HEAT"
             )
-            return Mode.HEAT, Device.MIN_TEMP
+            return Mode.HEAT, Device.MIN_TEMP, FanMode.NONE
         LOG.info(
             f"{self.name}: temperature ({c_to_f(self.temperature)}) in valid range"
             f" ({c_to_f(Device.MIN_TEMP)}-{c_to_f(Device.MAX_TEMP)}), setting away mode to"
@@ -489,7 +496,7 @@ class Device:
         )
         return Mode.FAN_ONLY, self.target_temp, FanMode.AUTO
 
-    def post(self, mode: Mode, temp: float = None, fan_mode: FanMode = None):
+    def post(self, mode: Mode, temp: float = None, fan_mode: FanMode = FanMode.NONE):
         """
         Post a command to the device.
 
@@ -501,7 +508,7 @@ class Device:
         if mode == self.last_sent_mode or self.zone.get_auth(self.name, mode):
             self.post_command(mode, temp, fan_mode)
 
-    def post_command(self, mode: Mode, temp: float = None, fan_mode: FanMode = None):
+    def post_command(self, mode: Mode, temp: float = None, fan_mode: FanMode = FanMode.NONE):
         """
         Post a command to the device.
 
@@ -546,17 +553,19 @@ class Device:
         """
         self.client.publish(
             f"{self.name}/attributes",
-            json.dumps({
-                "send_state": send_state,
-                "send_state_long": Remote.format_send_state(send_state),
-                "recv_mode": self.mode,
-                "recv_fan": self.fan_mode,
-                "recv_preset": self.preset_mode,
-                "target_temp": self.target_temp,
-                "target_humidity": self.target_humidity,
-                "curr_temp": self.temperature,
-                "curr_humidity": self.humidity,
-            }),
+            json.dumps(
+                {
+                    "send_state": send_state,
+                    "send_state_long": Remote.format_send_state(send_state),
+                    "recv_mode": self.mode,
+                    "recv_fan": self.fan_mode,
+                    "recv_preset": self.preset_mode,
+                    "target_temp": self.target_temp,
+                    "target_humidity": self.target_humidity,
+                    "curr_temp": self.temperature,
+                    "curr_humidity": self.humidity,
+                }
+            ),
             retain=True,
         )
 
