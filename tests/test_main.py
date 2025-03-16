@@ -12,6 +12,8 @@ def mock_config():
     return """\
 mqtt_host: localhost
 mqtt_port: 1883
+temperature_tol: 4.5
+humidity_tol: 15
 token: test_token
 key: test_key
 climates:
@@ -184,6 +186,8 @@ def test_main_one_device(mock_remote, mock_client, mock_path, mock_config, mock_
 
     assert len(devices) == 1
     assert devices[0].name == "Living_Room"
+    assert devices[0].TOLERANCE == 4.5
+    assert devices[0].HUMIDITY_TOLERANCE == 15
     assert devices[0].target_temp == 22
     assert devices[0].target_humidity == 50
     assert devices[0].mode == "cool"
