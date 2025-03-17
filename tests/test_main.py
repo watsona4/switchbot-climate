@@ -36,6 +36,8 @@ def mock_config_two():
     return """\
 mqtt_host: localhost
 mqtt_port: 1883
+temperature_tol: 2
+humidity_tol: 4
 token: test_token
 key: test_key
 climates:
@@ -68,6 +70,8 @@ def mock_config_two_primary():
     return """\
 mqtt_host: localhost
 mqtt_port: 1883
+temperature_tol: 2
+humidity_tol: 4
 token: test_token
 key: test_key
 climates:
@@ -101,6 +105,8 @@ def mock_config_three():
     return """\
 mqtt_host: localhost
 mqtt_port: 1883
+temperature_tol: 4
+humidity_tol: 8
 token: test_token
 key: test_key
 climates:
@@ -227,6 +233,8 @@ def test_main_two_devices(
     devices = mock_client.return_value.devices
 
     assert len(devices) == 2
+    assert devices[1].TOLERANCE == 2
+    assert devices[1].HUMIDITY_TOLERANCE == 4
     assert devices[1].name == "Bedroom"
     assert devices[1].target_temp == 22
     assert devices[1].target_humidity == 50
@@ -283,7 +291,8 @@ def test_main_three_devices(
     devices = mock_client.return_value.devices
 
     assert len(devices) == 3
-    assert devices[2].name == "Bathroom"
+    assert devices[2].TOLERANCE == 4
+    assert devices[2].HUMIDITY_TOLERANCE == 8
     assert devices[2].target_temp == 22
     assert devices[2].target_humidity == 50
     assert devices[2].mode == "cool"

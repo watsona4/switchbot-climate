@@ -109,6 +109,7 @@ class Device:
         self.old_mode: Mode = Mode.NONE
         self.old_target_temp: float = 0.0
         self.last_sent_mode: Mode = Mode.NONE
+        self.last_action: str = ""
 
     @property
     def clamp(self) -> str:
@@ -430,6 +431,10 @@ class Device:
         else:
             self.action = "idle"
 
+        if self.action != self.last_action:
+            self.last_action = self.action
+            LOG.info(f"{self.name}: setting action to {self.action}")
+
         self.publish_action()
 
     def compute_auto(self) -> Tuple[Mode, float]:
@@ -442,17 +447,21 @@ class Device:
         bottom = round(self.target_temp - Device.TOLERANCE, 1)
         top = round(self.target_temp + Device.TOLERANCE, 1)
 
+        str_bottom = c_to_f(bottom)
+        str_top = c_to_f(top)
+        str_temp = c_to_f(self.temperature)
+
         if self.temperature != 0.0:
             if self.temperature >= top:
                 LOG.info(
-                    f"{self.name}: temperature ({c_to_f(self.temperature)}) >= target_high"
-                    f" ({c_to_f(top)}), setting mode to COOL"
+                    f"{self.name}: temperature ({str_temp}) >= target_high"
+                    f" ({str_top}), setting mode to COOL"
                 )
                 return Mode.COOL, self.target_temp
             if self.temperature < bottom:
                 LOG.info(
-                    f"{self.name}: temperature ({c_to_f(self.temperature)}) < target_low"
-                    f" ({c_to_f(bottom)}), setting mode to HEAT"
+                    f"{self.name}: temperature ({str_temp}) < target_low"
+                    f" ({str_bottom}), setting mode to HEAT"
                 )
                 return Mode.HEAT, self.target_temp
 
@@ -464,8 +473,8 @@ class Device:
             mode_str = f"not changing mode ({mode})"
 
         LOG.info(
-            f"{self.name}: temperature ({c_to_f(self.temperature)}) in valid range"
-            f" ({c_to_f(bottom)}-{c_to_f(top)}), {mode_str}"
+            f"{self.name}: temperature ({str_temp}) in valid range"
+            f" ({str_bottom}-{str_top}), {mode_str}"
         )
 
         return mode, self.target_temp
