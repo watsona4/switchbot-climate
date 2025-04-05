@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, List
 
 from paho.mqtt.client import Client as MQTTClient
 from paho.mqtt.client import MQTTMessage  # noqa: F401
@@ -46,6 +46,9 @@ class Client(MQTTClient):
         """
         Set up MQTT subscriptions for all devices and zones.
         """
+        self.subscribe("switchbot_climate/healthcheck/status")
+        self.message_callback_add("switchbot_climate/healthcheck/status", self.on_healthcheck)
+
         for zone in self.zones:
             zone.setup_subscriptions()
 
@@ -64,3 +67,19 @@ class Client(MQTTClient):
             LOG.error(f"Could not connect to broker: {reason_code.getName()}")
         else:
             LOG.info(f"Connected to {self._host}:{self._port}")
+
+    def on_healthcheck(self, client: MQTTClient, userdata: Any, message: MQTTMessage):
+        """
+        Handle the health check message from the MQTT broker.
+
+        If the received message payload is "CHECK", the method responds by
+        publishing "OK" to the "switchbot_climate/healthcheck/status" topic.
+
+        Args:
+            client (MQTTClient): The MQTT client instance.
+            userdata (Any): User-defined data of any type passed to the callback.
+            message (MQTTMessage): The MQTT message containing the payload.
+
+        """
+        if message.payload == "CHECK":
+            self.publish("switchbot_climate/healthcheck/status", "OK")
