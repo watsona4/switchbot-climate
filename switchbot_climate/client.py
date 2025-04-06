@@ -81,6 +81,5 @@ class Client(MQTTClient):
             message (MQTTMessage): The MQTT message containing the payload.
 
         """
-        LOG.info("Healthcheck requested...")
         if message.payload.decode() == "CHECK":
             self.publish("switchbot_climate/healthcheck/status", "OK")
