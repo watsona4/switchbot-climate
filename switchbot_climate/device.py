@@ -555,10 +555,12 @@ class Device:
         self.client.publish(f"{self.name}/action", self.action, retain=True)
 
         if self.preset_mode == PresetMode.AWAY:
+            self.client.publish(f"{self.name}/target_temp", "", retain=True)
             self.client.publish(f"{self.name}/target_temp_low", self.AWAY_MIN_TEMP, retain=True)
             self.client.publish(f"{self.name}/target_temp_high", self.MAX_TEMP, retain=True)
         else:
             if self.mode == Mode.AUTO:
+                self.client.publish(f"{self.name}/target_temp", "", retain=True)
                 self.client.publish(
                     f"{self.name}/target_temp_low",
                     self.target_temp - Device.TOLERANCE,
@@ -571,6 +573,8 @@ class Device:
                 )
             else:
                 self.client.publish(f"{self.name}/target_temp", self.target_temp, retain=True)
+                self.client.publish(f"{self.name}/target_temp_low", "", retain=True)
+                self.client.publish(f"{self.name}/target_temp_high", "", retain=True)
 
     def publish_send_state(self, send_state: str):
         """
