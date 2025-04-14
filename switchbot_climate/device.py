@@ -551,9 +551,26 @@ class Device:
         self.client.publish(f"{self.name}/mode", self.mode, retain=True)
         self.client.publish(f"{self.name}/preset_mode", self.preset_mode, retain=True)
         self.client.publish(f"{self.name}/fan_mode", self.fan_mode, retain=True)
-        self.client.publish(f"{self.name}/target_temp", self.target_temp, retain=True)
         self.client.publish(f"{self.name}/target_humidity", self.target_humidity, retain=True)
         self.client.publish(f"{self.name}/action", self.action, retain=True)
+
+        if self.preset_mode == PresetMode.AWAY:
+            self.client.publish(f"{self.name}/target_temp_low", self.AWAY_MIN_TEMP, retain=True)
+            self.client.publish(f"{self.name}/target_temp_high", self.MAX_TEMP, retain=True)
+        else:
+            if self.mode == Mode.AUTO:
+                self.client.publish(
+                    f"{self.name}/target_temp_low",
+                    self.target_temp - Device.TOLERANCE,
+                    retain=True,
+                )
+                self.client.publish(
+                    f"{self.name}/target_temp_high",
+                    self.target_temp + Device.TOLERANCE,
+                    retain=True,
+                )
+            else:
+                self.client.publish(f"{self.name}/target_temp", self.target_temp, retain=True)
 
     def publish_send_state(self, send_state: str):
         """
