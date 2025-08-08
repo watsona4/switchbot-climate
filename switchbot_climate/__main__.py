@@ -26,6 +26,8 @@ SCHEMA = Map(
     {
         "mqtt_host": Url() | Str(),
         Optional("mqtt_port", 1883): Int(),
+        Optional("mqtt_username", ""): Str(),
+        Optional("mqtt_password", ""): Str(),
         Optional("temperature_tol", 3.0): Float(),
         Optional("humidity_tol", 5): Int(),
         "climates": MapPattern(
@@ -81,6 +83,8 @@ def main():
 
     mqtt_host = config["mqtt_host"]
     mqtt_port = config["mqtt_port"]
+    mqtt_username = config["mqtt_username"]
+    mqtt_password = config["mqtt_password"]
     token = config["token"]
     key = config["key"]
 
@@ -90,7 +94,7 @@ def main():
     if "humidity_tol" in config:
         Device.HUMIDITY_TOLERANCE = config["humidity_tol"]
 
-    client = Client(mqtt_host, mqtt_port)
+    client = Client(mqtt_host, mqtt_port, mqtt_username, mqtt_password)
 
     remote = Remote(token, key)
     device_ids = {

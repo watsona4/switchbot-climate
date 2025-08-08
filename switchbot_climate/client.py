@@ -22,7 +22,7 @@ class Client(MQTTClient):
         zones (List[Zone]): A list of zones managed by the client.
     """
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, username: str = "", password: str = ""):
         """
         Initialize the Client class with the given host and port.
 
@@ -39,6 +39,8 @@ class Client(MQTTClient):
         self.zones: List[Zone] = []
 
         self.enable_logger(LOG)
+
+        self.username_pw_set(username, password)
 
         self.connect(self._host, self._port)
 
