@@ -138,12 +138,12 @@ def main():
             print("heartbeat missing")
             sys.exit(1)
 
-            age = time.time() - mtime
-            if age <= grace:
-                print("ok")
-                sys.exit(0)
-            print(f"stale heartbeat: {age:.1f}s")
-            sys.exit(1)
+        age = time.time() - mtime
+        if age <= grace:
+            print("ok")
+            sys.exit(0)
+        print(f"stale heartbeat: {age:.1f}s")
+        sys.exit(1)
 
     mqtt_host = config["mqtt_host"]
     mqtt_port = config["mqtt_port"]

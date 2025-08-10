@@ -20,7 +20,7 @@ RUN pip install --no-cache --break-system-packages /wheels/*
 USER 0
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-  CMD python -m switchbot_climate --check-heartbeat || exit 1
+  CMD python -m switchbot_climate -c /data/config.yaml --check-heartbeat || exit 1
 
 LABEL org.opencontainers.image.source=https://github.com/watsona4/switchbot_climate
 
