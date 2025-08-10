@@ -1,6 +1,10 @@
 import argparse
 import copy
 import logging
+import os
+import sys
+import threading
+import time
 from pathlib import Path
 from typing import List
 
@@ -36,6 +40,13 @@ SCHEMA = Map(
                 Optional("zigbee2mqtt", default="zigbee2mqtt"): Str(),
             }
         ),
+        Optional("health"): Map(
+            {
+                Optional("heartbeat_path", default="/tmp/switchbot_climate.heartbeat"): Str(),
+                Optional("interval_seconds", default=15): Int(),
+                Optional("grace_seconds", default=45): Int(),
+            }
+        ),
         Optional("temperature_tol", 3.0): Float(),
         Optional("humidity_tol", 5): Int(),
         "climates": MapPattern(
@@ -69,6 +80,23 @@ SCHEMA = Map(
 )
 
 
+def _start_heartbeat(path: str, interval: int) -> threading.Event:
+    stop_evt = threading.Event()
+
+    def _loop() -> None:
+        while not stop_evt.is_set():
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(str(time.time()))
+            except Exception:
+                LOG.exception("heartbeat write failed")
+            stop_evt.wait(interval)
+
+    t = threading.Thread(target=_loop, name="heartbeat", daemon=True)
+    t.start()
+    return stop_evt
+
+
 def main():
     """
     Main function to set up and run the SwitchBot Climate application.
@@ -85,6 +113,11 @@ def main():
         help="Initializes the configuration from the indicated file",
         required=True,
     )
+    parser.add_argument(
+        "--check-heartbeat",
+        action="store_true",
+        help="Exit 0 if heartbeat file is recent, else non-zero",
+    )
 
     args = parser.parse_args()
 
@@ -93,6 +126,24 @@ def main():
 
     # Read the config file
     config = load(Path(args.config).read_text(), SCHEMA).data
+
+    health_cfg = config.get("health", {}) or {}
+    hb_path = health_cfg.get("heartbeat_path", "/tmp/switchbot_climate.heartbeat")
+    grace = int(health_cfg.get("grace_seconds", 45))
+
+    if args.check_heartbeat:
+        try:
+            mtime = os.path.getmtime(hb_path)
+        except FileNotFoundError:
+            print("heartbeat missing")
+            sys.exit(1)
+
+            age = time.time() - mtime
+            if age <= grace:
+                print("ok")
+                sys.exit(0)
+            print(f"stale heartbeat: {age:.1f}s")
+            sys.exit(1)
 
     mqtt_host = config["mqtt_host"]
     mqtt_port = config["mqtt_port"]
@@ -169,10 +220,16 @@ def main():
     client.zones = zones
     client.setup_subscriptions()
 
+    hb_stop_evt = _start_heartbeat(hb_path, health_cfg["interval_seconds"])
+
     try:
         client.loop_forever()
     except KeyboardInterrupt:
         LOG.info("Shutting down...")
+        try:
+            hb_stop_evt.set()
+        except Exception:
+            pass
         for d in devices:
             try:
                 client.publish(f"{d.name}/availability", "offline", qos=1, retain=True)

@@ -14,13 +14,13 @@ WORKDIR /app
 RUN apk update && apk add --no-cache mosquitto-clients
 
 COPY --from=builder /app/wheels /wheels
-COPY healthcheck.sh .
 
 RUN pip install --no-cache --break-system-packages /wheels/*
 
 USER 0
 
-HEALTHCHECK CMD ./healthcheck.sh
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
+  CMD python -m switchbot_climate --check-heartbeat || exit 1
 
 LABEL org.opencontainers.image.source=https://github.com/watsona4/switchbot_climate
 
