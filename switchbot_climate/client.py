@@ -22,7 +22,7 @@ class Client(MQTTClient):
         zones (List[Zone]): A list of zones managed by the client.
     """
 
-    def __init__(self, host: str, port: int, username: str = "", password: str = ""):
+    def __init__(self, host: str, port: int, username: str, password: str, topics: dict[str, str]):
         """
         Initialize the Client class with the given host and port.
 
@@ -38,11 +38,46 @@ class Client(MQTTClient):
         self.devices: List[Device] = []
         self.zones: List[Zone] = []
 
+        self.topics: dict[str, str] = topics
+
         self.enable_logger(LOG)
 
         self.username_pw_set(username, password)
 
         self.connect(self._host, self._port)
+
+    def _is_under(self, base_key: str, topic: str) -> bool:
+        base = self.topics.get(base_key, "")
+        return bool(base) and (topic == base or topic.startswith(base + "/"))
+
+    def _normalize_topic(self, topic: str) -> str:
+        # pass through if already absolute under any known base
+        for key in ("device", "devices_root", "switchbot", "zigbee2mqtt"):
+            if self._is_under(key, topic):
+                return topic
+        # remap short upstream roots
+        if topic.startswith("switchbot/"):
+            return f"{self.topics['switchbot']}/{topic}"
+        if topic.startswith("zigbee2mqtt/"):
+            return f"{self.topics['zigbee2mqtt']}/{topic}"
+        # device-local: "<DeviceName>/..."
+        first = topic.split("/", 1)[0]
+        if any(getattr(d, "name", None) == first for d in self.devices):
+            return f"{self.topics['devices_root']}/{topic}"
+        # otherwise leave as-is (covers app health etc.)
+        return topic
+
+    def publish(self, topic, payload=None, qos: int = 0, retain: bool = False, properties=None):
+        topic = self._normalize_topic(topic)
+        return super().publish(topic, payload, qos=qos, retain=retain, properties=properties)
+
+    def subscribe(self, topic: str, qos: int = 0, options=None, properties=None):
+        topic = self._normalize_topic(topic)
+        return super().subscribe(topic, qos=qos, options=options, properties=properties)
+
+    def message_callback_add(self, sub: str, callback):
+        sub = self._normalize_topic(sub)
+        return super().message_callback_add(sub, callback)
 
     def setup_subscriptions(self):
         """

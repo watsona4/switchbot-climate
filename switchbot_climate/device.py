@@ -96,7 +96,7 @@ class Device:
         self.temp_device_id: str = ""
         self.clamp_id: str = ""
         self.current_id: str = ""
-        self.action: str = ""
+        self.action: str = "idle"
 
         self.device_id: str = ""
         self.remote: Remote
@@ -111,7 +111,7 @@ class Device:
         self.old_mode: Mode = Mode.NONE
         self.old_target_temp: float = 0.0
         self.last_sent_mode: Mode = Mode.NONE
-        self.last_action: str = ""
+        self.last_action: str = "idle"
 
     @property
     def clamp(self) -> str:
@@ -227,6 +227,8 @@ class Device:
         self.client.message_callback_add(
             f"switchbot/{self.temp_device_id}/status", self.on_switchbot
         )
+        self.client.publish(f"{self.name}/availability", "online", qos=1, retain=True)
+        self.publish_action()
 
     def subscribe(self, topic: str, callback: Callable[[str], None]):
         """

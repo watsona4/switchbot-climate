@@ -28,6 +28,14 @@ SCHEMA = Map(
         Optional("mqtt_port", 1883): Int(),
         Optional("mqtt_username", ""): Str(),
         Optional("mqtt_password", ""): Str(),
+        Optional("topics"): Map(
+            {
+                Optional("device", default="switchbot_climate"): Str(),
+                Optional("devices_root", default=""): Str(),
+                Optional("switchbot", default="switchbot-mqtt"): Str(),
+                Optional("zigbee2mqtt", default="zigbee2mqtt"): Str(),
+            }
+        ),
         Optional("temperature_tol", 3.0): Float(),
         Optional("humidity_tol", 5): Int(),
         "climates": MapPattern(
@@ -94,7 +102,7 @@ def main():
     if "humidity_tol" in config:
         Device.HUMIDITY_TOLERANCE = config["humidity_tol"]
 
-    client = Client(mqtt_host, mqtt_port, mqtt_username, mqtt_password)
+    client = Client(mqtt_host, mqtt_port, mqtt_username, mqtt_password, topics=config["topics"])
 
     remote = Remote(token, key)
     device_ids = {
@@ -159,6 +167,11 @@ def main():
         client.loop_forever()
     except KeyboardInterrupt:
         LOG.info("Shutting down...")
+        for d in devices:
+            try:
+                client.publish(f"{d.name}/availability", "offline", qos=1, retain=True)
+            except Exception:
+                pass
         client.disconnect()
 
 
