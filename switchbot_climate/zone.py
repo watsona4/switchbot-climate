@@ -50,6 +50,7 @@ class Zone:
 
         self.name: str = name
 
+        self.clamp_topic: str = ""
         self.devices: List[Device] = []
         self.primary: Device | None = None
         self.client: Client
@@ -127,19 +128,16 @@ class Zone:
 
         Raises:
             RuntimeError: If there are no devices in the zone.
-            RuntimeError: If there are multiple different clamp IDs in the zone.
+            RuntimeError: If clamp_topic is missing.
         """
 
         if not self.devices:
             raise RuntimeError(f"Zone {self.name}: No devices in zone")
 
-        clamp_id = None
-        for device in self.devices:
-            if clamp_id is not None and device.clamp_id != clamp_id:
-                raise RuntimeError(f"Zone {self.name}: Multiple clamps in zone")
-            clamp_id = device.clamp_id
+        if not getattr(self, "clamp_topic", ""):
+            raise RuntimeError(f"Zone {self.name}: clamp_topic not set")
 
-        topic = f"zigbee2mqtt/{clamp_id}"
+        topic = f"zigbee2mqtt/{self.clamp_topic}"
 
         if self.client is not None:
             self.client.subscribe(topic)

@@ -48,7 +48,7 @@ SCHEMA = Map(
                     "fan_mode": Enum(["auto", "low", "medium", "high"]),
                     "preset_mode": Enum(["none", "away"]),
                     "temp_device_id": Regex(r"^[A-Fa-f0-9]{12}$"),
-                    "clamp": Regex(r"^[A-Za-z0-9\s]+\/[A-Za-z0-9_]+$"),
+                    Optional("clamp_attr", default="current"): Str(),
                     Optional("primary", False): Bool(),
                 }
             ),
@@ -56,7 +56,12 @@ SCHEMA = Map(
         ),
         "zones": MapPattern(
             Str(),
-            Seq(Str()),
+            Map(
+                {
+                    "clamp_topic": Str(),
+                    "devices": Seq(Str()),
+                }
+            ),
         ),
         "token": Str(),
         "key": Str(),
@@ -123,7 +128,7 @@ def main():
             PresetMode(entry["preset_mode"]) if "preset_mode" in entry else PresetMode.NONE
         )
         device.temp_device_id = entry["temp_device_id"]
-        device.clamp = entry["clamp"]
+        device.current_id = entry.get("clamp_attr", "current")
 
         device.device_id = device_ids[name]
 
@@ -136,12 +141,13 @@ def main():
         devices.append(device)
 
     zones: List[Zone] = []
-    for name, entries in config["zones"].items():
+    for name, zcfg in config["zones"].items():
         zone = Zone(name)
         zone.client = client
+        zone.clamp_topic = zcfg["clamp_topic"]
 
         for device in devices:
-            if device.name in entries:
+            if device.name in zcfg["devices"]:
                 zone.devices.append(device)
                 device.zone = zone
 
