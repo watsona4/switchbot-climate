@@ -57,7 +57,6 @@ class Device:
     A class representing a device controlled by the SwitchBot API.
 
     Attributes:
-        AWAY_MIN_TEMP (float): The lower threshold temperature during Away Mode.
         MIN_TEMP (float): The minimum temperature the device can be set to.
         MAX_TEMP (float): The maximum temperature the device can be set to.
         TOLERANCE (float): The temperature tolerance for the device.
@@ -67,7 +66,6 @@ class Device:
         last_message (List[datetime]): A list containing the timestamp of the last message received.
     """
 
-    AWAY_MIN_TEMP: float = 10.0
     MIN_TEMP: float = 16.0
     MAX_TEMP: float = 30.0
     TOLERANCE: float = 1.0
@@ -379,29 +377,29 @@ class Device:
             LOG.info(f"{self.name}: In AWAY mode")
             self.post(*self.compute_away())
 
-        elif self.humidity > self.target_humidity + Device.HUMIDITY_TOLERANCE:
-            LOG.info(
-                f"{self.name}: humidity ({self.humidity}) > target_high"
-                f" ({self.target_humidity + Device.HUMIDITY_TOLERANCE}), going into DRY"
-                " mode"
-            )
-            self.old_mode = self.mode
-            self.old_target_temp = self.target_temp
-            self.mode = Mode.DRY
-            self.post(mode=Mode.DRY)
+        # elif self.humidity > self.target_humidity + Device.HUMIDITY_TOLERANCE:
+        #     LOG.info(
+        #         f"{self.name}: humidity ({self.humidity}) > target_high"
+        #         f" ({self.target_humidity + Device.HUMIDITY_TOLERANCE}), going into DRY"
+        #         " mode"
+        #     )
+        #     self.old_mode = self.mode
+        #     self.old_target_temp = self.target_temp
+        #     self.mode = Mode.DRY
+        #     self.post(mode=Mode.DRY)
 
-        elif (
-            self.mode == Mode.DRY
-            and self.humidity < self.target_humidity - Device.HUMIDITY_TOLERANCE
-        ):
-            LOG.info(
-                f"{self.name}: humidity ({self.humidity}) < target_low"
-                f" ({self.target_humidity - Device.HUMIDITY_TOLERANCE}), coming out of "
-                " DRY mode"
-            )
-            if self.old_mode != Mode.OFF:
-                self.mode = self.old_mode
-                self.post(mode=self.old_mode, temp=self.old_target_temp)
+        # elif (
+        #     self.mode == Mode.DRY
+        #     and self.humidity < self.target_humidity - Device.HUMIDITY_TOLERANCE
+        # ):
+        #     LOG.info(
+        #         f"{self.name}: humidity ({self.humidity}) < target_low"
+        #         f" ({self.target_humidity - Device.HUMIDITY_TOLERANCE}), coming out of "
+        #         " DRY mode"
+        #     )
+        #     if self.old_mode != Mode.OFF:
+        #         self.mode = self.old_mode
+        #         self.post(mode=self.old_mode, temp=self.old_target_temp)
 
         elif self.mode is None or self.mode == Mode.AUTO:
             LOG.info(f"{self.name}: In AUTO mode, calculating updated mode")
@@ -496,15 +494,15 @@ class Device:
                 f" ({c_to_f(Device.MAX_TEMP)}), setting away mode to COOL"
             )
             return Mode.COOL, Device.MAX_TEMP, FanMode.NONE
-        if self.temperature < Device.AWAY_MIN_TEMP:
+        if self.temperature < Device.MIN_TEMP:
             LOG.info(
-                f"{self.name}: temperature ({c_to_f(self.temperature)}) < AWAY_MIN_TEMP"
-                f" ({c_to_f(Device.AWAY_MIN_TEMP)}), setting away mode to HEAT"
+                f"{self.name}: temperature ({c_to_f(self.temperature)}) < MIN_TEMP"
+                f" ({c_to_f(Device.MIN_TEMP)}), setting away mode to HEAT"
             )
             return Mode.HEAT, Device.MIN_TEMP, FanMode.NONE
         LOG.info(
             f"{self.name}: temperature ({c_to_f(self.temperature)}) in valid range"
-            f" ({c_to_f(Device.AWAY_MIN_TEMP)}-{c_to_f(Device.MAX_TEMP)}), setting away mode to"
+            f" ({c_to_f(Device.MIN_TEMP)}-{c_to_f(Device.MAX_TEMP)}), setting away mode to"
             " FAN_ONLY"
         )
         return Mode.FAN_ONLY, self.target_temp, FanMode.AUTO
@@ -558,7 +556,7 @@ class Device:
 
         if self.preset_mode == PresetMode.AWAY:
             self.client.publish(f"{self.name}/target_temp", "", retain=True)
-            self.client.publish(f"{self.name}/target_temp_low", self.AWAY_MIN_TEMP, retain=True)
+            self.client.publish(f"{self.name}/target_temp_low", self.MIN_TEMP, retain=True)
             self.client.publish(f"{self.name}/target_temp_high", self.MAX_TEMP, retain=True)
         else:
             if self.mode == Mode.AUTO:
