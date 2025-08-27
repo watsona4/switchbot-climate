@@ -10,7 +10,7 @@ import logging
 
 import colorlog
 
-LOG: logging.Logger = logging.getLogger("switchbot-climate")
+LOG: logging.Logger = logging.getLogger(__name__)
 
 __handler = logging.StreamHandler()
 
