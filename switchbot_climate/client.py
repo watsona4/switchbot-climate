@@ -40,11 +40,25 @@ class Client(MQTTClient):
 
         self.topics: dict[str, str] = topics
 
+        self.will_set(
+            f"{self.topics.get('device', 'switchbot_climate')}/availability",
+            "offline",
+            qos=1,
+            retain=True,
+        )
+
         self.enable_logger(LOG)
 
         self.username_pw_set(username, password)
 
         self.connect(self._host, self._port)
+
+        self.publish(
+            f"{self.topics.get('device', 'switchbot_climate')}/availability",
+            "online",
+            qos=1,
+            retain=True,
+        )
 
     def _is_under(self, base_key: str, topic: str) -> bool:
         base = self.topics.get(base_key, "")
