@@ -32,9 +32,13 @@ __formatter = colorlog.LevelFormatter(
     style="{",
 )
 
-__handler.setFormatter(__formatter)  # type: ignore[arg-type]
+__handler.setFormatter(__formatter)
+__handler.setLevel(logging.NOTSET)
 
 LOG.addHandler(__handler)
+
+LOG.setLevel(logging.NOTSET)
+LOG.propagate = False
 
 from .client import Client  # noqa: F401,E402
 from .device import Device, FanMode, Mode, PresetMode  # noqa: F401,E402
