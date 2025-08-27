@@ -85,7 +85,7 @@ class Client(MQTTClient):
         topic = self._normalize_topic(topic)
         return super().publish(topic, payload, qos=qos, retain=retain, properties=properties)
 
-    def subscribe(self, topic: str, qos: int = 0, options=None, properties=None):
+    def subscribe(self, topic: str, qos: int = 0, options=None, properties=None):  # type: ignore
         topic = self._normalize_topic(topic)
         return super().subscribe(topic, qos=qos, options=options, properties=properties)
 

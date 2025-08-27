@@ -106,7 +106,13 @@ def main():
         prog="switchbot-climate", description="Adds a climate entity to SwitchBot-MQTT"
     )
 
-    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="-v: DEBUG for switchbot_climate; -vv: also DEBUG for MQTT",
+    )
     parser.add_argument(
         "-c",
         "--config",
@@ -122,7 +128,12 @@ def main():
     args = parser.parse_args()
 
     # Set up the logger based on args
-    LOG.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    pkg_level = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    mqtt_level = logging.DEBUG if args.verbose >= 2 else logging.WARNING
+
+    logging.getLogger("switchbot_climate").setLevel(pkg_level)
+    logging.getLogger("paho").setLevel(mqtt_level)
+    logging.getLogger("paho.mqtt.client").setLevel(mqtt_level)
 
     # Read the config file
     config = load(Path(args.config).read_text(), SCHEMA).data
